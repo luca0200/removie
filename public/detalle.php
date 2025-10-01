@@ -79,7 +79,7 @@ include __DIR__ . '/header.php';
           <a class="btn" href="<?= htmlspecialchars($c['trailer_url']) ?>" target="_blank" rel="noreferrer">Ver trailer</a>
         <?php endif; ?>
         <button class="btn outline favorite-btn <?= $user_actions['is_favorite'] ? 'active' : '' ?>" data-movie-id="<?= $c['id_contenido'] ?>" data-is-favorite="<?= $user_actions['is_favorite'] ? 'true' : 'false' ?>">
-          <?= $user_actions['is_favorite'] ? '★ En favoritos' : '☆ Agregar a favoritos' ?>
+          <?= $user_actions['is_favorite'] ? '★ En favoritos' : '☆ Agregar a favo' ?>
         </button>
         <button class="btn outline watched-btn <?= $user_actions['is_watched'] ? 'active' : '' ?>" data-movie-id="<?= $c['id_contenido'] ?>" data-is-watched="<?= $user_actions['is_watched'] ? 'true' : 'false' ?>">
           <?= $user_actions['is_watched'] ? '✓ Visto' : '○ Marcar como visto' ?>
