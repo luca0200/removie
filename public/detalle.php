@@ -76,7 +76,7 @@ include __DIR__ . '/header.php';
       <?php if (isset($_SESSION['user_id'])): ?>
       <div class="actions">
         <?php if ($c['trailer_url']): ?>
-          <a class="btn" href="<?= htmlspecialchars($c['trailer_url']) ?>" target="_blank" rel="noreferrer">Ver trailer</a>
+          <a class="btn" href="<?= htmlspecialchars($c['trailer_url']) ?>" target="_blank" rel="noreferrer">Ver </a>
         <?php endif; ?>
         <button class="btn outline favorite-btn <?= $user_actions['is_favorite'] ? 'active' : '' ?>" data-movie-id="<?= $c['id_contenido'] ?>" data-is-favorite="<?= $user_actions['is_favorite'] ? 'true' : 'false' ?>">
           <?= $user_actions['is_favorite'] ? '★ En favoritos' : '☆ Agregar a favoritos' ?>
