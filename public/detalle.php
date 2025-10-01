@@ -5,10 +5,31 @@ $id = (int)($_GET['id'] ?? 0);
 $pdo = db();
 $tmdbService = new TMDbService($pdo);
 
+
 $stmt = $pdo->prepare("SELECT * FROM contenido WHERE id_contenido = :id");
 $stmt->execute([':id' => $id]);
 $c = $stmt->fetch();
 if (!$c) { http_response_code(404); $title = 'No encontrado'; include __DIR__.'header.php'; echo "<p>No encontrado</p>"; include __DIR__.'/footer.php'; exit; }
+
+// Obtener trailer_url de la base de datos, TMDb por id, o TMDb por título
+$trailer_url = $c['trailer_url'];
+if (empty($trailer_url)) {
+  $tmdb_id = $c['id_tmdb'] ?? null;
+  $tipo = strtolower($c['tipo'] ?? 'movie');
+  // Normalizar tipo
+  if ($tipo === 'pelicula' || $tipo === 'movie') {
+    $tipo = 'movie';
+  } else if ($tipo === 'serie' || $tipo === 'tv') {
+    $tipo = 'tv';
+  }
+  if ($tmdb_id) {
+    $trailer_url = $tmdbService->getTrailerUrl($tmdb_id, $tipo);
+  }
+  // Si sigue vacío, buscar por título
+  if (empty($trailer_url)) {
+    $trailer_url = $tmdbService->getTrailerUrlByTitle($c['titulo'], $tipo);
+  }
+}
 
 // El rating ya está calculado y guardado en la base de datos (sistema ponderado)
 // No necesitamos recalcularlo aquí, ya se actualiza automáticamente cuando se agregan reseñas
@@ -75,8 +96,8 @@ include __DIR__ . '/header.php';
 
       <?php if (isset($_SESSION['user_id'])): ?>
       <div class="actions">
-        <?php if ($c['trailer_url']): ?>
-          <a class="btn" href="<?= htmlspecialchars($c['trailer_url']) ?>" target="_blank" rel="noreferrer">Ver trailer</a>
+        <?php if (!empty($trailer_url)): ?>
+          <button class="btn" id="show-trailer-btn" type="button" data-trailer-url="<?= htmlspecialchars($trailer_url) ?>">Ver trailer</button>
         <?php endif; ?>
         <button class="btn outline favorite-btn <?= $user_actions['is_favorite'] ? 'active' : '' ?>" data-movie-id="<?= $c['id_contenido'] ?>" data-is-favorite="<?= $user_actions['is_favorite'] ? 'true' : 'false' ?>">
           <?= $user_actions['is_favorite'] ? '★ En favoritos' : '☆ Agregar a favo' ?>
@@ -152,6 +173,61 @@ include __DIR__ . '/header.php';
     </div>
   </div>
 </section>
+
+<!-- Modal para el trailer -->
+<div id="trailer-modal" class="trailer-modal" style="display:none;position:fixed;z-index:1000;left:0;top:0;width:100vw;height:100vh;background:rgba(0,0,0,0.8);align-items:center;justify-content:center;">
+  <div style="position:relative;background:#111;padding:1em 1em 0.5em 1em;border-radius:8px;max-width:90vw;max-height:90vh;">
+    <button id="close-trailer-modal" style="position:absolute;top:8px;right:8px;font-size:1.5em;background:none;border:none;color:#fff;cursor:pointer;">&times;</button>
+    <div id="trailer-video-container" style="width:70vw;max-width:700px;height:40vw;max-height:400px;">
+      <!-- El iframe del trailer se insertará aquí -->
+    </div>
+  </div>
+</div>
+
+<script>
+// Función para extraer el ID de YouTube de una URL
+function getYouTubeId(url) {
+  var regExp = /^.*(?:youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
+  var match = url.match(regExp);
+  return (match && match[1].length == 11) ? match[1] : null;
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+  var showBtn = document.getElementById('show-trailer-btn');
+  var modal = document.getElementById('trailer-modal');
+  var closeBtn = document.getElementById('close-trailer-modal');
+  var videoContainer = document.getElementById('trailer-video-container');
+  if (showBtn) {
+    showBtn.addEventListener('click', function() {
+      var url = showBtn.getAttribute('data-trailer-url');
+      var ytId = getYouTubeId(url);
+      var embedHtml = '';
+      if (ytId) {
+        embedHtml = '<iframe width="100%" height="100%" src="https://www.youtube.com/embed/' + ytId + '?autoplay=1" frameborder="0" allowfullscreen allow="autoplay"></iframe>';
+      } else {
+        // Si no es YouTube, intentar mostrarlo como video HTML5
+        embedHtml = '<video width="100%" height="100%" controls autoplay><source src="' + url + '"></video>';
+      }
+      videoContainer.innerHTML = embedHtml;
+      modal.style.display = 'flex';
+    });
+  }
+  if (closeBtn) {
+    closeBtn.addEventListener('click', function() {
+      modal.style.display = 'none';
+      videoContainer.innerHTML = '';
+    });
+  }
+  // Cerrar modal al hacer click fuera del contenido
+  modal.addEventListener('click', function(e) {
+    if (e.target === modal) {
+      modal.style.display = 'none';
+      videoContainer.innerHTML = '';
+    }
+  });
+});
+</script>
+
 <?php include __DIR__ . '/footer.php'; ?>
 
 

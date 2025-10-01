@@ -1,4 +1,4 @@
-<?php
+    <?php
 /**
  * Servicio TMDb para Re-movie
  * Maneja la obtención y almacenamiento de datos de películas desde TMDb API
@@ -7,6 +7,46 @@
 require_once __DIR__ . '/cache_helper.php';
 
 class TMDbService {
+
+    /**
+     * Obtiene la URL del trailer de una película o serie desde TMDb por id
+     * @param int $tmdbId
+     * @param string $tipo 'movie' o 'tv'
+     * @return string|null
+     */
+    public function getTrailerUrl($tmdbId, $tipo = 'movie') {
+        if ($tipo === 'tv') {
+            $endpoint = "/tv/{$tmdbId}/videos";
+        } else {
+            $endpoint = "/movie/{$tmdbId}/videos";
+        }
+        $data = $this->makeRequest($endpoint);
+        if ($data && !empty($data['results'])) {
+            foreach ($data['results'] as $video) {
+                if ($video['type'] === 'Trailer' && $video['site'] === 'YouTube') {
+                    return "https://www.youtube.com/watch?v=" . $video['key'];
+                }
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Busca el trailer en TMDb por título y tipo (movie/tv)
+     * @param string $titulo
+     * @param string $tipo 'movie' o 'tv'
+     * @return string|null
+     */
+    public function getTrailerUrlByTitle($titulo, $tipo = 'movie') {
+        $endpoint = $tipo === 'tv' ? '/search/tv' : '/search/movie';
+        $params = ['query' => $titulo];
+        $data = $this->makeRequest($endpoint, $params);
+        if ($data && !empty($data['results'])) {
+            $tmdbId = $data['results'][0]['id'];
+            return $this->getTrailerUrl($tmdbId, $tipo);
+        }
+        return null;
+    }
     private $apiKey;
     private $baseUrl = 'https://api.themoviedb.org/3';
     private $imageBaseUrl = 'https://image.tmdb.org/t/p/w500';
